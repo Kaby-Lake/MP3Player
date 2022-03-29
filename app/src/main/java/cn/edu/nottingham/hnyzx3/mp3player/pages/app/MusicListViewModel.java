@@ -9,9 +9,8 @@ import java.util.Objects;
 
 import cn.edu.nottingham.hnyzx3.mp3player.BR;
 import cn.edu.nottingham.hnyzx3.mp3player.R;
-import cn.edu.nottingham.hnyzx3.mp3player.bindings.recyclerview.adapter.binder.ItemBinder;
-import cn.edu.nottingham.hnyzx3.mp3player.bindings.recyclerview.adapter.binder.ItemBinderBase;
 import cn.edu.nottingham.hnyzx3.mp3player.components.musicItem.MusicItemViewModel;
+import me.tatarka.bindingcollectionadapter2.ItemBinding;
 
 public class MusicListViewModel extends ViewModel {
 
@@ -22,14 +21,13 @@ public class MusicListViewModel extends ViewModel {
     /**
      * custom binder to the component inside the recycler view
      */
-    public ItemBinder<MusicItemViewModel> itemViewBinder() {
-        return new ItemBinderBase<>(BR.music, R.layout.components_music_item);
-    }
+    public final ItemBinding<MusicItemViewModel> itemBinding = ItemBinding.of(BR.music, R.layout.components_music_item);
 
     public ObservableArrayList<MusicItemViewModel> musicList = new ObservableArrayList<>();
 
     /**
      * get the MusicItemViewModel by the specified path from the music list
+     *
      * @param path
      * @return
      */
@@ -45,6 +43,7 @@ public class MusicListViewModel extends ViewModel {
 
     /**
      * set the specified music to play, others set to stop
+     *
      * @param currentMusic can be null, then all music set to stop
      */
     public void setCurrentMusicStatus(MusicItemViewModel currentMusic) {
