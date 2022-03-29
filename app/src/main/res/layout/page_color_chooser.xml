@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+        <import type="android.view.View" />
+
+        <variable
+            name="common"
+            type="cn.edu.nottingham.hnyzx3.mp3player.pages.app.CommonViewModel" />
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/page_color_chooser_background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@{common.selectedBackgroundColor}"
+        tools:context=".pages.colorChooser.ColorChooser">
+
+        <TextView
+            android:id="@+id/page_color_chooser_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:text="Change Background Color"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TableLayout
+            android:id="@+id/tableLayout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="70dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/page_color_chooser_title">
+
+            <TableRow
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/black"
+                    android:onClick="@{() -> common.setSelectedBackgroundColor(@color/black)}"
+                    android:text="Black"
+                    android:textColor="@color/white"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/dark_gray"
+                    android:onClick="@{() -> common.setSelectedBackgroundColor(@color/dark_gray)}"
+                    android:text="DKGray"
+                    android:textColor="@color/white"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/gray"
+                    android:onClick="@{() -> common.setSelectedBackgroundColor(@color/gray)}"
+                    android:text="Gray"
+                    android:textColor="@color/white"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+            </TableRow>
+
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/white"
+                    android:onClick="@{() -> common.setSelectedBackgroundColor(@color/white)}"
+                    android:text="White"
+                    android:textColor="@color/black"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/red"
+                    android:onClick="@{() -> common.setSelectedBackgroundColor(@color/red)}"
+                    android:text="Red"
+                    android:textColor="@color/white"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/green"
+                    android:onClick="@{() -> common.setSelectedBackgroundColor(@color/green)}"
+                    android:text="Green"
+                    android:textColor="@color/white"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+            </TableRow>
+
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/blue"
+                    android:onClick="@{() -> common.setSelectedBackgroundColor(@color/blue)}"
+                    android:text="Blue"
+                    android:textColor="@color/white"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/yellow"
+                    android:onClick="@{() -> common.setSelectedBackgroundColor(@color/yellow)}"
+                    android:text="Yellow"
+                    android:textColor="@color/black"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="@color/magenta"
+                    android:onClick="@{() -> common.setSelectedBackgroundColor(@color/magenta)}"
+                    android:text="Magenta"
+                    android:textColor="@color/white"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+            </TableRow>
+
+        </TableLayout>
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="70dp"
+            android:onClick="onBackClick"
+            android:visibility="@{common.isLandscapeMode ? View.GONE : View.VISIBLE}"
+            android:text="Back"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="70dp"
+            android:layout_marginBottom="70dp"
+            android:onClick="onBackClick"
+            android:text="Back"
+            android:visibility="@{common.isLandscapeMode ? View.VISIBLE : View.GONE}"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

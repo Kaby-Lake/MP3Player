@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">MP3Player</string>
+    <string name="button_scan_music">Scan Music</string>
+    <string name="button_change_color">Change Color</string>
+</resources>

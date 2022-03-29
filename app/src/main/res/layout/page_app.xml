@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <import type="cn.edu.nottingham.hnyzx3.mp3player.pages.app.AppViewModel.MusicStatus" />
+
+        <import type="android.view.View" />
+
+        <variable
+            name="app"
+            type="cn.edu.nottingham.hnyzx3.mp3player.pages.app.AppViewModel" />
+
+        <variable
+            name="common"
+            type="cn.edu.nottingham.hnyzx3.mp3player.pages.app.CommonViewModel" />
+
+        <variable
+            name="musicList"
+            type="cn.edu.nottingham.hnyzx3.mp3player.pages.app.MusicListViewModel" />
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/page_app_background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@{common.selectedBackgroundColor}"
+        tools:context=".pages.app.App">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:id="@+id/page_app_buttons_container"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="0dp"
+                android:layout_marginTop="0dp"
+                android:layout_marginEnd="0dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <Button
+                    android:id="@+id/load_music_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:onClick="onScanMusicFromFileClick"
+                    android:text="@string/button_scan_music" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <Button
+                    android:id="@+id/button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:onClick="navigateToColorChooserPage"
+                    android:text="@string/button_change_color" />
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+            <ScrollView
+                android:id="@+id/music_list_scroll_view"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_marginStart="0dp"
+                android:layout_marginTop="30dp"
+                android:layout_marginEnd="0dp"
+                android:layout_marginBottom="30dp"
+                app:layout_constraintBottom_toTopOf="@+id/page_app_controls_container"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/page_app_buttons_container">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/activity_users_recycler"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:scrollbars="vertical"
+                    app:itemViewBinder="@{musicList.itemViewBinder}"
+                    app:items="@{musicList.musicList}" />
+
+
+            </ScrollView>
+
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:id="@+id/page_app_controls_container"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="50dp"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent">
+
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:id="@+id/page_app_current_music_container"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginEnd="10dp"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="30dp"
+                            android:layout_weight="0.7"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:text='@{app.currentPlayingMusic.name ?? "Not Playing"}'
+                            android:textColor="#000000"
+                            android:textSize="16sp"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="0.3"
+                            android:text="@{app.currentPlayingMusic.artist}"
+                            android:textColor="#888888"
+                            android:textSize="11sp"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintStart_toStartOf="parent" />
+
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+
+                    <SeekBar
+                        android:id="@+id/progressBar"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:max="@{app.totalMusicDuration}"
+                        android:progress="@{app.currentMusicDuration}"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@+id/page_app_current_music_container" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="32dp"
+                        android:text="@{app.currentMusicDuration}"
+                        android:textSize="16sp"
+                        app:layout_constraintStart_toStartOf="@+id/progressBar"
+                        app:layout_constraintTop_toBottomOf="@+id/progressBar" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="32dp"
+                        android:text="@{app.totalMusicDuration}"
+                        android:textSize="16sp"
+                        app:layout_constraintEnd_toEndOf="@+id/progressBar"
+                        app:layout_constraintTop_toBottomOf="@+id/progressBar" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <Space
+                    android:layout_width="match_parent"
+                    android:layout_height="20dp" />
+
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent">
+
+                    <Space
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1" />
+
+                    <ImageButton
+                        android:id="@+id/imageButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:clickable="@{app.musicPlayingStatus != MusicStatus.STOPPED}"
+                        android:onClick="onPlayPauseClick"
+                        android:src="@{app.musicPlayingStatus == MusicStatus.PAUSED ? @drawable/ic_baseline_play_arrow_24 : @drawable/ic_baseline_pause_24}"
+                        android:tint="@{app.musicPlayingStatus != MusicStatus.STOPPED ? @color/button_enabled : @color/button_disabled}" />
+
+                    <Space
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1" />
+
+                    <ImageButton
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:clickable="@{app.musicPlayingStatus == MusicStatus.PLAYING ? true : false}"
+                        android:onClick="onStopMusicClick"
+                        android:src="@drawable/ic_baseline_stop_24"
+                        android:tint="@{app.musicPlayingStatus == MusicStatus.PLAYING ? @color/button_enabled : @color/button_disabled}" />
+
+                    <Space
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1" />
+                </androidx.appcompat.widget.LinearLayoutCompat>
+            </androidx.appcompat.widget.LinearLayoutCompat>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>
+
+
