@@ -19,7 +19,6 @@ public class ColorFactory {
     }
 
     public enum Colors {
-        BLACK(Color.BLACK),
         DKGREY(Color.DKGRAY),
         GRAY(Color.GRAY),
         WHITE(Color.WHITE),

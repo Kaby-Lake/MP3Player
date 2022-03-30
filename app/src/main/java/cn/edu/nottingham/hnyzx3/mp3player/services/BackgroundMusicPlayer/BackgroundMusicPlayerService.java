@@ -16,6 +16,7 @@ import cn.edu.nottingham.hnyzx3.mp3player.components.musicItem.MusicItemViewMode
 import cn.edu.nottingham.hnyzx3.mp3player.pages.app.App;
 import cn.edu.nottingham.hnyzx3.mp3player.pages.app.AppViewModel;
 import cn.edu.nottingham.hnyzx3.mp3player.utils.Notification;
+import cn.edu.nottingham.hnyzx3.mp3player.utils.ServiceManager;
 
 public class BackgroundMusicPlayerService extends Service {
 
@@ -43,9 +44,15 @@ public class BackgroundMusicPlayerService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-        Log.e(TAG, "Service is bound");
+        Log.i(TAG, "Service is bound");
         activityConnectionState = ConnectionState.Connected;
         return new PlayMusicBinder();
+    }
+
+    @Override
+    public void onRebind(Intent intent) {
+        Log.i(TAG, "Service is rebind");
+        activityConnectionState = ConnectionState.Connected;
     }
 
     private MediaPlayer mediaPlayer;
@@ -66,18 +73,17 @@ public class BackgroundMusicPlayerService extends Service {
                 mediaPlayer.stop();
                 mediaPlayer.reset();
                 if (activityConnectionState != ConnectionState.Connected) {
-                    Log.e(TAG, "Service is destroyed because the music is stopped");
+                    Log.i(TAG, "Service is destroyed because the music is stopped");
                     stopService();
                 }
             });
-            mediaPlayer.setOnPreparedListener((mp) -> {
-                Log.d(TAG, String.valueOf(mp));
-            });
-            mediaPlayer.setOnErrorListener((mp, what, extra) -> {
-                mp.reset();
-                Log.e(TAG, String.valueOf(what));
-                return false;
-            });
+//            mediaPlayer.setOnPreparedListener((mp) -> {
+//                Log.d(TAG, String.valueOf(mp));
+//            });
+//            mediaPlayer.setOnErrorListener((mp, what, extra) -> {
+//                Log.e(TAG, String.valueOf(what));
+//                return false;
+//            });
             mediaPlayer.setAudioAttributes(
                     new AudioAttributes.Builder()
                             .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
@@ -106,7 +112,7 @@ public class BackgroundMusicPlayerService extends Service {
                     mediaPlayer.prepare();
                     mediaPlayer.start();
                     notification.createNotification("Music Playing", music.path);
-                } catch (IOException e) {
+                } catch (Exception e) {
                     Log.e(TAG, e.getMessage());
                     Toast.makeText(getApplicationContext(), "Failed to play music from path: " + music.path, Toast.LENGTH_LONG).show();
                 }
@@ -206,30 +212,42 @@ public class BackgroundMusicPlayerService extends Service {
 
     @Override
     public boolean onUnbind(Intent intent) {
-        Log.e(TAG, "Service is unbound");
+        Log.i(TAG, "Service is unbound");
         activityConnectionState = ConnectionState.Disconnected;
 
-        // check if the music player is playing
-        // if it is playing, then do not destroy the service until the current music has finished playing
-        // else destroy the service immediately
-        if (!mediaPlayer.isPlaying()) {
-            Log.e(TAG, "Service is destroyed because mediaPlayer is not playing");
+        if(ServiceManager.isServiceRunning(this, this.getClass())) {
+            // check if the music player is playing
+            // if it is playing, then do not destroy the service until the current music has finished playing
+            // else destroy the service immediately
+            if (!mediaPlayer.isPlaying()) {
+                Log.i(TAG, "Service is destroyed because mediaPlayer is not playing");
+                super.onUnbind(intent);
+                stopService();
+                return false;
+            } else {
+                Log.i(TAG, "Service is not destroyed because mediaPlayer is playing");
+                return true;
+            }
+        } else  {
             stopService();
+            super.onUnbind(intent);
+            return false;
         }
-        return super.onUnbind(intent);
+
     }
 
     @Override
     public void onTaskRemoved(Intent intent) {
         super.onTaskRemoved(intent);
-        Log.e(TAG, "Service is destroyed because been killed");
         stopService();
+        Log.i(TAG, "Service is destroyed because been killed");
     }
 
     /**
      * the necessary steps to normally stop the service
      */
     private void stopService() {
+        this.stopForeground(true);
         notification.clearNotification();
         mediaPlayer.release();
         stopSelf();

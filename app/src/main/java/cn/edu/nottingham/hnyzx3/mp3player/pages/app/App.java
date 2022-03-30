@@ -36,6 +36,7 @@ import cn.edu.nottingham.hnyzx3.mp3player.services.BackgroundMusicPlayer.Backgro
 import cn.edu.nottingham.hnyzx3.mp3player.services.BackgroundMusicPlayer.IAppCallback;
 import cn.edu.nottingham.hnyzx3.mp3player.services.BackgroundMusicPlayer.IBackgroundMusicPlayer;
 import cn.edu.nottingham.hnyzx3.mp3player.utils.MusicScanner;
+import cn.edu.nottingham.hnyzx3.mp3player.utils.ServiceManager;
 import cn.edu.nottingham.hnyzx3.mp3player.utils.TimeIntervalExecutorService;
 
 public class App extends AppCompatActivity implements IAppCallback {
@@ -43,9 +44,67 @@ public class App extends AppCompatActivity implements IAppCallback {
     private final String TAG = this.getClass().getSimpleName();
 
     // viewModels
+
     AppViewModel app;
     CommonViewModel common;
     MusicListViewModel musicList;
+
+
+    // services and bindings
+
+    BackgroundMusicPlayerService musicPlayerService = null;
+
+    private IBackgroundMusicPlayer iMusicPlay = null;
+
+    private ServiceConnection connection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            Log.i("App", "OnServiceConnected");
+
+            // enable the messaging from the activity to the service
+            iMusicPlay = (IBackgroundMusicPlayer) service;
+
+            // enable the messaging from the service to the activity
+            musicPlayerService = iMusicPlay.getServiceInstance();
+            musicPlayerService.registerClient(App.this);
+            // restore the music playing state if possible
+            BackgroundMusicPlayerServiceState previousState = iMusicPlay.getServiceState();
+            app.restoreServiceState(previousState);
+            if (previousState.musicStatus == AppViewModel.MusicStatus.PLAYING) {
+                startTimeProgressTracker();
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            Log.i("App", "onServiceDisconnected");
+        }
+    };
+
+    /**
+     * the service notify the activity that the music has stopped
+     */
+    @Override
+    public void whenServiceNotifyMusicStopped() {
+        app.musicPlayingStatus.set(AppViewModel.MusicStatus.STOPPED);
+        app.currentPlayingMusic.set(null);
+        musicList.setCurrentMusicStatus(null);
+        this.stopTimeProgressTracker();
+    }
+
+
+    // life cycle
+
+    private final ActivityResultLauncher<String> requestPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (isGranted) {
+                    Log.i(TAG, "permission granted");
+                    this.onScanMusicFromFileClick(null);
+                } else {
+                    Log.i(TAG, "permission not granted");
+                    Toast.makeText(getApplicationContext(), "MP3Player needs file read permission to access musics located in /Music", Toast.LENGTH_LONG).show();
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,59 +124,37 @@ public class App extends AppCompatActivity implements IAppCallback {
 
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                tempProgress = progress;
+                if (app.musicPlayingStatus.get() == AppViewModel.MusicStatus.PLAYING) {
+                    tempProgress = progress;
+                }
             }
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-                timeIntervalExecutorServiceCallback.cancel();
+                if (app.musicPlayingStatus.get() == AppViewModel.MusicStatus.PLAYING) {
+                    timeIntervalExecutorServiceCallback.cancel();
+                }
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                app.currentMusicDuration.set(tempProgress);
-                iMusicPlay.seekToPosition(tempProgress);
-                timeIntervalExecutorServiceCallback.restart();
+                if (app.musicPlayingStatus.get() == AppViewModel.MusicStatus.PLAYING) {
+                    app.currentMusicDuration.set(tempProgress);
+                    iMusicPlay.seekToPosition(tempProgress);
+                    timeIntervalExecutorServiceCallback.restart();
+                }
             }
         });
 
         if (ContextCompat.checkSelfPermission(
                 this, READ_EXTERNAL_STORAGE) ==
                 PackageManager.PERMISSION_GRANTED) {
-            Log.e(TAG, "permission is granted");
+            Log.i(TAG, "permission is granted");
             this.onScanMusicFromFileClick(null);
         } else {
-            Log.e(TAG, "granting permission");
+            Log.i(TAG, "granting permission");
             requestPermissionLauncher.launch(
                     Manifest.permission.READ_EXTERNAL_STORAGE);
-        }
-    }
-
-    private final ActivityResultLauncher<String> requestPermissionLauncher =
-            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
-                if (isGranted) {
-                    Log.e(TAG, "permission granted");
-                    this.onScanMusicFromFileClick(null);
-                } else {
-                    Log.e(TAG, "permission not granted");
-                    Toast.makeText(getApplicationContext(), "MP3Player needs file read permission to access musics located in /Music", Toast.LENGTH_LONG).show();
-                }
-            });
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-//        this.onScanMusicFromFileClick(null);
-
-    }
-
-    private void handlePlaybackIntentFromExternal(Intent possibleIntent) {
-        Intent intent = possibleIntent != null ? possibleIntent : getIntent();
-        if (intent != null && intent.getAction() != null && intent.getAction().toLowerCase().contains("view")) {
-            Log.e(TAG, "handlePlaybackIntentFromExternal: " + intent);
-            // Handle intents with specific audio/* MIME data
-            Uri uri = intent.getData();
-            this.onPlay(MusicScanner.getMusicFromUri(uri));
         }
     }
 
@@ -127,40 +164,54 @@ public class App extends AppCompatActivity implements IAppCallback {
         handlePlaybackIntentFromExternal(intent);
     }
 
-    BackgroundMusicPlayerService musicPlayerService;
 
-    private IBackgroundMusicPlayer iMusicPlay;
+    /**
+     * get called when rotation happens
+     * will apply the new landscape/portrait layout
+     * and restore the viewModels to the new layout
+     */
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        PageAppBinding binding = DataBindingUtil.setContentView(this, R.layout.page_app);
+        binding.setApp(app);
+        binding.setCommon(common);
+        binding.setMusicList(musicList);
+        binding.activityUsersRecycler.setLayoutManager(new LinearLayoutManager(this));
+    }
 
-    private ServiceConnection connection;
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.i(TAG, "Activity onDestroy");
+        stopTimeProgressTracker();
+        unbindService(connection);
+    }
 
-    private void bindAndConnectToService() {
-        // bind to the service if it is already running, else create a new one and bind to it
-        startService(new Intent(this, BackgroundMusicPlayerService.class));
-        if (null == iMusicPlay || null == iMusicPlay.getMediaPlayer()) {
-            bindService(new Intent(this, BackgroundMusicPlayerService.class), connection = new ServiceConnection() {
-                @Override
-                public void onServiceConnected(ComponentName name, IBinder service) {
-                    Log.e("App", "OnServiceConnected");
 
-                    // enable the messaging from the activity to the service
-                    iMusicPlay = (IBackgroundMusicPlayer) service;
+    // click listeners
 
-                    // enable the messaging from the service to the activity
-                    musicPlayerService = iMusicPlay.getServiceInstance();
-                    musicPlayerService.registerClient(App.this);
-                    // restore the music playing state if possible
-                    BackgroundMusicPlayerServiceState previousState = iMusicPlay.getServiceState();
-                    app.restoreServiceState(previousState);
-                    if (previousState.musicStatus == AppViewModel.MusicStatus.PLAYING) {
-                        startTimeProgressTracker();
-                    }
-                }
+    public void onPlayPauseClick(View view) {
+        if (ServiceManager.isServiceRunning(this, BackgroundMusicPlayerService.class)) {
+            // if the music is playing, pause it
+            if (app.musicPlayingStatus.get() == AppViewModel.MusicStatus.PLAYING) {
+                iMusicPlay.pauseMusicPlay();
+                app.musicPlayingStatus.set(AppViewModel.MusicStatus.PAUSED);
+            } else {
+                // if the music is paused, resume it
+                iMusicPlay.continueMusicPlay();
+                app.musicPlayingStatus.set(AppViewModel.MusicStatus.PLAYING);
+            }
+        }
+    }
 
-                @Override
-                public void onServiceDisconnected(ComponentName name) {
-                    Log.e("App", "onServiceDisconnected");
-                }
-            }, 0);
+    public void onStopMusicClick(View view) {
+        if (ServiceManager.isServiceRunning(this, BackgroundMusicPlayerService.class)) {
+            iMusicPlay.stopMusicPlay();
+            app.currentPlayingMusic.set(null);
+            app.musicPlayingStatus.set(AppViewModel.MusicStatus.STOPPED);
+            musicList.setCurrentMusicStatus(null);
+            this.stopTimeProgressTracker();
         }
     }
 
@@ -179,6 +230,7 @@ public class App extends AppCompatActivity implements IAppCallback {
                     }
                 }
             });
+
 
     public void navigateToColorChooserPage(View view) {
         Bundle bundle = new Bundle();
@@ -199,35 +251,35 @@ public class App extends AppCompatActivity implements IAppCallback {
 
     public void onMusicClick(View view) {
         MusicItemViewModel thisMusic = musicList.getMusicByPath((String) view.getTag());
-        this.onPlay(thisMusic);
+        this.playFromMusic(thisMusic);
     }
 
-    /**
-     * get called when rotation happens
-     * will apply the new landscape/portrait layout
-     * and restore the viewModels to the new layout
-     */
-    @Override
-    public void onConfigurationChanged(@NonNull Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        PageAppBinding binding = DataBindingUtil.setContentView(this, R.layout.page_app);
-        binding.setApp(app);
-        binding.setCommon(common);
-        binding.setMusicList(musicList);
-        binding.activityUsersRecycler.setLayoutManager(new LinearLayoutManager(this));
-    }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        Log.e(TAG, "Activity onDestroy");
-        if (null != connection) {
-            stopTimeProgressTracker();
-            unbindService(connection);
+    // helper functions
+
+    private void handlePlaybackIntentFromExternal(Intent possibleIntent) {
+        Intent intent = possibleIntent != null ? possibleIntent : getIntent();
+        if (intent != null && intent.getAction() != null && intent.getAction().toLowerCase().contains("view")) {
+            Log.i(TAG, "handlePlaybackIntentFromExternal: " + intent);
+            // Handle intents with specific audio/* MIME data
+            Uri uri = intent.getData();
+            this.playFromMusic(MusicScanner.getMusicFromUri(uri));
         }
     }
 
-    public void onPlay(MusicItemViewModel music) {
+    private void bindAndConnectToService() {
+        if (!ServiceManager.isServiceRunning(this, BackgroundMusicPlayerService.class)) {
+            Log.i("App", "Service not running, start a new one");
+            startService(new Intent(this, BackgroundMusicPlayerService.class));
+        } else {
+            Log.i("App", "Service already running");
+        }
+        // provide 0 to the flag, method will not start service until a call like startService(Intent) is made to start the service
+        bindService(new Intent(this, BackgroundMusicPlayerService.class), connection, 0);
+    }
+
+
+    public void playFromMusic(MusicItemViewModel music) {
         app.currentPlayingMusic.set(music);
         app.musicPlayingStatus.set(AppViewModel.MusicStatus.PLAYING);
         musicList.setCurrentMusicStatus(music);
@@ -235,29 +287,8 @@ public class App extends AppCompatActivity implements IAppCallback {
         startTimeProgressTracker();
     }
 
-    public void onPlayPauseClick(View view) {
-        if (null != iMusicPlay) {
-            // if the music is playing, pause it
-            if (app.musicPlayingStatus.get() == AppViewModel.MusicStatus.PLAYING) {
-                iMusicPlay.pauseMusicPlay();
-                app.musicPlayingStatus.set(AppViewModel.MusicStatus.PAUSED);
-            } else {
-                // if the music is paused, resume it
-                iMusicPlay.continueMusicPlay();
-                app.musicPlayingStatus.set(AppViewModel.MusicStatus.PLAYING);
-            }
-        }
-    }
 
-    public void onStopMusicClick(View view) {
-        if (null != iMusicPlay) {
-            iMusicPlay.stopMusicPlay();
-            app.currentPlayingMusic.set(null);
-            app.musicPlayingStatus.set(AppViewModel.MusicStatus.STOPPED);
-            musicList.setCurrentMusicStatus(null);
-            this.stopTimeProgressTracker();
-        }
-    }
+    // progress tracker
 
     TimeIntervalExecutorService.TimeIntervalExecutorServiceCallback timeIntervalExecutorServiceCallback;
 
@@ -265,10 +296,11 @@ public class App extends AppCompatActivity implements IAppCallback {
         // if the last setInterval task is not finished, cancel it
         this.stopTimeProgressTracker();
         app.totalMusicDuration.set(iMusicPlay.getMediaPlayer().getDuration());
-        if (null != iMusicPlay) {
+        if (ServiceManager.isServiceRunning(this, BackgroundMusicPlayerService.class)) {
             timeIntervalExecutorServiceCallback = TimeIntervalExecutorService.scheduleSingletonAtFixedTime(0, () -> {
-                Log.d("App", "getTimePlayed: " + iMusicPlay.getMediaPlayer().getCurrentPosition());
-                app.currentMusicDuration.set(iMusicPlay.getMediaPlayer().getCurrentPosition());
+                int currentPosition = iMusicPlay.getMediaPlayer().getCurrentPosition();
+                Log.d("App", "getTimePlayed: " + currentPosition);
+                app.currentMusicDuration.set(currentPosition);
             }, 1000);
         }
     }
@@ -279,15 +311,5 @@ public class App extends AppCompatActivity implements IAppCallback {
         }
         app.totalMusicDuration.set(0);
         app.currentMusicDuration.set(0);
-    }
-
-    /**
-     * the service notify the activity that the music has stopped
-     */
-    @Override
-    public void whenServiceNotifyMusicStopped() {
-        app.musicPlayingStatus.set(AppViewModel.MusicStatus.STOPPED);
-        musicList.setCurrentMusicStatus(null);
-        this.stopTimeProgressTracker();
     }
 }
